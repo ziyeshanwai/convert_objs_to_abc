@@ -10,8 +10,11 @@ clone the code to local, and open it in vs 2019, compile, done!
 befor using, shold know following:
 * Let the obj sequence name like 0000.obj 0001.obj and so on
 * Let the obj sequence have the same topology
+
+usage
+
 ```python
-Objs2Abc.exe -i inputdir -o output.abc -f 24
+Objs2Abc.exe -i <objs_directory> -o <output_name.abc> -f <framerate>
 ```
 example  
 ```python
@@ -25,7 +28,7 @@ result:
 
 ### Problems  
 * Maya cannot recongize the generated abc file  
-if you want to import the abc to Maya, firsr import it to blender, then export abc file using blender. Maya import the abc file which is generated in blender. 
+if you want to import the abc to Maya, first import it to blender, then export abc file using blender. Maya import the abc file which is generated in blender. 
 * Import the abc to blender, the normal is wrong 
   ![](./imgs/2.png)  
   if you want to solve this normal problem, you should import the abc file to Maya, and using `flip normal` operation
