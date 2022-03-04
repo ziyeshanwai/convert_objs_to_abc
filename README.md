@@ -12,7 +12,7 @@ befor using, shold know following:
 * Let the obj sequence have the same topology
 
 usage
-
+download Release.zip and unzip.
 ```python
 Objs2Abc.exe -i <objs_directory> -o <output_name.abc> -f <framerate>
 ```
