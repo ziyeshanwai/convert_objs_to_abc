@@ -92,19 +92,22 @@ void ReadObj(string path, std::vector<vertice>& OutVertices, std::vector<uv>& Ou
 				{
 					
 					a = std::stoi(s2);
-					OutFace.push_back(a - 1);
 					b = std::stoi(s3);
-					OutFace.push_back(b - 1);
 					c = std::stoi(s4);
-					OutFace.push_back(c - 1);
 					if (!s5.empty())
 					{
 						d = std::stoi(s5);
 						OutFace.push_back(d - 1);
+						OutFace.push_back(c - 1);
+						OutFace.push_back(b - 1);
+						OutFace.push_back(a - 1);
 						Outgcounts.push_back(4);
 					}
 					else
 					{
+						OutFace.push_back(c - 1);
+						OutFace.push_back(b - 1);
+						OutFace.push_back(a - 1);
 						Outgcounts.push_back(3);
 					}
 				}
@@ -114,17 +117,17 @@ void ReadObj(string path, std::vector<vertice>& OutVertices, std::vector<uv>& Ou
 					{
 						a = a * 10 + (s2[k] - 48);
 					}
-					OutFace.push_back(a - 1);
+					
 					for (int k = 0; s3[k] != '/'; k++)
 					{
 						b = b * 10 + (s3[k] - 48);
 					}
-					OutFace.push_back(b - 1);
+					
 					for (int k = 0; s4[k] != '/'; k++)
 					{
 						c = c * 10 + (s4[k] - 48);
 					}
-					OutFace.push_back(c - 1);
+					
 					if (!s5.empty())
 					{
 						for (int k = 0; s5[k] != '/'; k++)
@@ -132,10 +135,16 @@ void ReadObj(string path, std::vector<vertice>& OutVertices, std::vector<uv>& Ou
 							d = d * 10 + (s5[k] - 48);
 						}
 						OutFace.push_back(d - 1);
+						OutFace.push_back(c - 1);
+						OutFace.push_back(b - 1);
+						OutFace.push_back(a - 1);
 						Outgcounts.push_back(4);
 					}
 					else
 					{
+						OutFace.push_back(c - 1);
+						OutFace.push_back(b - 1);
+						OutFace.push_back(a - 1);
 						Outgcounts.push_back(3);
 					}
 				}
