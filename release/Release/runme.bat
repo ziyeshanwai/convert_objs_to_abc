@@ -1,0 +1,1 @@
+Objs2Abc.exe -i ..\..\head-poses -o output.abc -f 24

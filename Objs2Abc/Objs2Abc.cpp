@@ -202,7 +202,8 @@ void seq2abc(string inputdir, string ouputfile, float fps)
 	int i = 0;
 	OArchive archive(Alembic::AbcCoreOgawa::WriteArchive(), ouputfile);
 	TimeSamplingPtr ts(new TimeSampling(1.0 / fps, 0.0));
-	OPolyMesh meshyObj(OObject(archive, kTop), "mymesh", ts);
+	OXform xfobj(archive.getTop(), "xf", ts);
+	OPolyMesh meshyObj(xfobj, "mymesh", ts);
 	OPolyMeshSchema& mesh = meshyObj.getSchema();
 	ReadObj(filenames[0], Vertices, Uvs, Normals, face, g_counts_array);
 	std::vector< V3f > verts(Vertices.size());
@@ -216,11 +217,25 @@ void seq2abc(string inputdir, string ouputfile, float fps)
 	std::copy(face.begin(), face.end(), g_indices2);
 	Abc::int32_t* g_counts2 = new Abc::int32_t[g_counts_array.size()];
 	std::copy(g_counts_array.begin(), g_counts_array.end(), g_counts2);
+	int j = 0;
+	Abc::float32_t* g_uvs = new Abc::float32_t[Uvs.size() * 2];
+	for (auto item : Uvs)
+	{
+		g_uvs[2 * j] = (Abc::float32_t)item.u;
+		g_uvs[2 * j + 1] = (Abc::float32_t)item.v;
+		j += 1;
+	}
+	OV2fGeomParam::Sample uvsamp(V2fArraySample((const V2f*)g_uvs,
+		Uvs.size()), kFacevaryingScope);
 	OPolyMeshSchema::Sample mesh_samp(
 		V3fArraySample(verts),
 		Int32ArraySample(g_indices2, g_numIndices2),
-		Int32ArraySample(g_counts2, g_counts_array.size()));
-
+		Int32ArraySample(g_counts2, g_counts_array.size()), uvsamp);
+	XformSample xf_samp;
+	XformOp rotOp(kRotateXOperation);
+	xf_samp.addOp(rotOp, 0.0);
+	xfobj.getSchema().set(xf_samp);
+	mesh_samp.setUVs(uvsamp);
 	mesh.set(mesh_samp);
 	for (int i = 1; i < filenames.size(); i++)
 	{
@@ -243,7 +258,9 @@ void seq2abc(string inputdir, string ouputfile, float fps)
 
 		std::cout << "verteice size " << Vertices.size() << std::endl;
 		std::cout << "face count " << face.size() << std::endl;
+		std::cout << "uv count " << Uvs.size() << std::endl;
 		std::cout << "read name " << filenames[i] << std::endl;
+		
 		mesh.set(mesh_samp);
 
 	}
@@ -253,9 +270,7 @@ void seq2abc(string inputdir, string ouputfile, float fps)
 		g_numNormals ), kFacevaryingScope );
 	mesh_samp.setNormals( nsamp );
 
-	OV2fGeomParam::Sample uvsamp( V2fArraySample( (const V2f *)g_uvs,
-								  g_numUVs ), kFacevaryingScope );
-	mesh_samp.setUVs( uvsamp );
+	
 	mesh_samp.setVelocities( V3fArraySample( ( const V3f * )g_veloc,
 										   g_numVerts ) );
 	mesh.set( mesh_samp );

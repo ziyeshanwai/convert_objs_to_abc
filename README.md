@@ -27,7 +27,6 @@ result:
 
 
 ### Problems  
-* Maya cannot recongize the generated abc file  
-if you want to import the abc to Maya, first import it to blender, then export abc file using blender. Maya import the abc file which is generated in blender. 
+
 * the abc file has no uv normal information!  
   if you  want to add this information to abc, please change the code and compile
