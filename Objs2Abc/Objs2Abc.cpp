@@ -1,7 +1,7 @@
 ﻿// Alembic Includes
 #include <Alembic/AbcGeom/All.h>
 #include <Alembic/AbcCoreOgawa/All.h>
-
+#include <algorithm>  
 // Other includes
 #include <iostream>
 #include <stdio.h>
@@ -188,9 +188,23 @@ void getFiles(string path, std::vector<string>& files)
 	}
 }
 
+void read_abc(string name)
+{
+	
+	IArchive archive(Alembic::AbcCoreOgawa::ReadArchive(), name);
+	std::cout << "Reading: " << archive.getName() << std::endl;
+	std::cout << archive.getTop() << std::endl;
+	IPolyMesh mymeshyObj(IObject(archive, kTop));
+	IPolyMeshSchema& m = mymeshyObj.getSchema();
+	IV2fGeomParam uv = m.getUVsParam();
+	std::cout << "Num Samples" << m.getNumSamples() << std::endl;
+	std::cout << "uvs Num Samples" << m.getUVsParam().getNumSamples() << std::endl;
+	
+}
 
 void seq2abc(string inputdir, string ouputfile, float fps)
 {
+	
 	string suffixStr = "obj";
 	std::vector<vertice> Vertices;
 	std::vector<vertice> Normals;
@@ -199,12 +213,15 @@ void seq2abc(string inputdir, string ouputfile, float fps)
 	std::vector<string> filenames;
 	std::vector<int> g_counts_array;
 	getFiles(inputdir, filenames);
+	std::sort(filenames.begin(), filenames.end());
 	int i = 0;
 	OArchive archive(Alembic::AbcCoreOgawa::WriteArchive(), ouputfile);
 	TimeSamplingPtr ts(new TimeSampling(1.0 / fps, 0.0));
 	OXform xfobj(archive.getTop(), "xf", ts);
-	OPolyMesh meshyObj(xfobj, "mymesh", ts);
+	OPolyMesh meshyObj(xfobj, "mesh", ts);
+	//OPolyMesh meshyObj(OObject(archive, kTop), "mesh", ts);
 	OPolyMeshSchema& mesh = meshyObj.getSchema();
+	
 	ReadObj(filenames[0], Vertices, Uvs, Normals, face, g_counts_array);
 	std::vector< V3f > verts(Vertices.size());
 	for (size_t i = 0; i < Vertices.size(); ++i)
@@ -221,22 +238,34 @@ void seq2abc(string inputdir, string ouputfile, float fps)
 	Abc::float32_t* g_uvs = new Abc::float32_t[Uvs.size() * 2];
 	for (auto item : Uvs)
 	{
-		g_uvs[2 * j] = (Abc::float32_t)item.u;
-		g_uvs[2 * j + 1] = (Abc::float32_t)item.v;
+		g_uvs[2 * j] = (Abc::float32_t)(item.u);
+		g_uvs[2 * j + 1] = (Abc::float32_t)(item.v);
 		j += 1;
 	}
-	OV2fGeomParam::Sample uvsamp(V2fArraySample((const V2f*)g_uvs,
-		Uvs.size()), kFacevaryingScope);
 	OPolyMeshSchema::Sample mesh_samp(
 		V3fArraySample(verts),
 		Int32ArraySample(g_indices2, g_numIndices2),
-		Int32ArraySample(g_counts2, g_counts_array.size()), uvsamp);
-	XformSample xf_samp;
-	XformOp rotOp(kRotateXOperation);
-	xf_samp.addOp(rotOp, 0.0);
-	xfobj.getSchema().set(xf_samp);
+		Int32ArraySample(g_counts2, g_counts_array.size()));
+	OV2fGeomParam::Sample uvsamp(V2fArraySample((const V2f*)g_uvs,
+		Uvs.size()), kFacevaryingScope);
+	//std::cout << uvsamp.getVals().size() << std::endl;
+	/*
+	auto tmp = uvsamp.getVals();
+	for (int i=0;i<tmp.size();i++)
+	{
+		std::cout << tmp[i] << std::endl;
+	}
+	*/
 	mesh_samp.setUVs(uvsamp);
+	std::cout << mesh_samp.getUVs().getVals().size() << std::endl;
 	mesh.set(mesh_samp);
+	std::cout << mesh.getNumSamples() << std::endl;
+
+	//XformSample xf_samp;
+	//XformOp rotOp(kRotateXOperation);
+	//xf_samp.addOp(rotOp, 0.0);
+	//xfobj.getSchema().set(xf_samp);
+	
 	for (int i = 1; i < filenames.size(); i++)
 	{
 		Vertices.clear();
@@ -264,7 +293,10 @@ void seq2abc(string inputdir, string ouputfile, float fps)
 		mesh.set(mesh_samp);
 
 	}
-
+	
+	
+	
+	
 	/*
 	ON3fGeomParam::Sample nsamp( N3fArraySample( (const N3f *)g_normals,
 		g_numNormals ), kFacevaryingScope );
@@ -293,9 +325,6 @@ void seq2abc(string inputdir, string ouputfile, float fps)
 	mesh_samp.setVelocities( V3fArraySample() );
 	mesh.set( mesh_samp );
 	*/
-
-
-
 	/*
 	IArchive archive( Alembic::AbcCoreOgawa::ReadArchive(), name );
 
@@ -367,6 +396,8 @@ int main(int argc, char* argv[])
 	// Mesh out
 	
 	seq2abc(inputdir, output, fps);
+	string name = "output.abc";
+	//read_abc(name);
 
 	return 0;
 }
