@@ -110,6 +110,7 @@ void ReadObj(string path, std::vector<vertice>& OutVertices, std::vector<uv>& Ou
 						OutFace.push_back(a - 1);
 						Outgcounts.push_back(3);
 					}
+					s5 = "";
 				}
 				else
 				{
@@ -147,6 +148,7 @@ void ReadObj(string path, std::vector<vertice>& OutVertices, std::vector<uv>& Ou
 						OutFace.push_back(a - 1);
 						Outgcounts.push_back(3);
 					}
+					s5 = "";
 				}
 				
 
