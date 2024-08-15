@@ -6,7 +6,7 @@
     <LocalDebuggerWorkingDirectory>$(ProjectDir)..\$(PlatformTarget)\$(Configuration)</LocalDebuggerWorkingDirectory>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
-    <LocalDebuggerCommandArguments>-i E:\obj2abcTool\LOD_1 -o output.abc -f 40</LocalDebuggerCommandArguments>
+    <LocalDebuggerCommandArguments>-i $(ProjectDir)..\data -o output.abc -f 40 -n mymesh</LocalDebuggerCommandArguments>
     <DebuggerFlavor>WindowsLocalDebugger</DebuggerFlavor>
     <LocalDebuggerWorkingDirectory>$(ProjectDir)..\$(PlatformTarget)\$(Configuration)</LocalDebuggerWorkingDirectory>
   </PropertyGroup>
@@ -19,5 +19,8 @@
     <LocalDebuggerCommandArguments>-i E:\obj2abcTool\LOD_1 -o output.abc -f 40</LocalDebuggerCommandArguments>
     <DebuggerFlavor>WindowsLocalDebugger</DebuggerFlavor>
     <LocalDebuggerWorkingDirectory>$(ProjectDir)..\$(PlatformTarget)\$(Configuration)</LocalDebuggerWorkingDirectory>
+  </PropertyGroup>
+  <PropertyGroup>
+    <ShowAllFiles>false</ShowAllFiles>
   </PropertyGroup>
 </Project>

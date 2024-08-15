@@ -13,6 +13,9 @@
 #include <Vector>
 #include <io.h>
 #include <algorithm>
+
+#include <cstdio>
+
 // We include some global mesh data to test with from an external source
 // to keep this example code clean.
 
@@ -163,19 +166,83 @@ void ReadObj(string path, std::vector<vertice>& OutVertices, std::vector<uv>& Ou
 }
 
 
+void ReadObj(const std::string& path, std::vector<vertice>& OutVertices, std::vector<uv>& OutUvs, std::vector<vertice>& OutNormals, std::vector<int>& OutFaceVertices, std::vector<int>& OutFaceUvs, std::vector<int>& Outgcounts) {
+	std::string s, str, s1, s2, s3;
+	std::ifstream inf;
+	vertice v;
+	vertice normal;
+	uv u;
+	inf.open(path);
+
+	if (inf.is_open()) {
+		while (getline(inf, s)) {
+			if (s[0] == 'v') {
+				if (s[1] == 't') {
+					std::istringstream in(s);
+					in >> s1 >> u.u >> u.v;
+					OutUvs.push_back(u);
+				}
+				else if (s[1] == 'n') {
+					std::istringstream in(s);
+					in >> s1 >> normal.x >> normal.y >> normal.z;
+					OutNormals.push_back(normal);
+				}
+				else {
+					std::istringstream in(s);
+					in >> s1 >> v.x >> v.y >> v.z;
+					OutVertices.push_back(v);
+				}
+			}
+
+			if (s[0] == 'f') {
+				std::istringstream in(s);
+				std::string face;
+				std::vector<int> vertexIndices;
+				std::vector<int> uvIndices;
+
+				while (in >> face) {
+					int vertexIndex, uvIndex, normalIndex;
+					
+					if (sscanf_s(face.c_str(), "%d/%d/%d", &vertexIndex, &uvIndex, &normalIndex) == 3) {
+						vertexIndices.push_back(vertexIndex - 1);
+						uvIndices.push_back(uvIndex - 1);
+					}
+					
+					else if (sscanf_s(face.c_str(), "%d/%d", &vertexIndex, &uvIndex) == 2) {
+						vertexIndices.push_back(vertexIndex - 1);
+						uvIndices.push_back(uvIndex - 1);
+					}
+				
+					else if (sscanf_s(face.c_str(), "%d", &vertexIndex) == 1) {
+						vertexIndices.push_back(vertexIndex - 1);
+						uvIndices.push_back(-1); 
+					}
+				}
+
+				for (size_t i = 0; i < vertexIndices.size(); ++i) {
+					OutFaceVertices.push_back(vertexIndices[i]);
+					OutFaceUvs.push_back(uvIndices.size() > i ? uvIndices[i] : -1); 
+				}
+				Outgcounts.push_back(vertexIndices.size());
+			}
+		}
+	}
+
+	inf.close();
+}
+
+
 void getFiles(string path, std::vector<string>& files)
 {
-	//文件句柄
+
 	intptr_t hFile = 0;
-	//文件信息
 	struct _finddata_t fileinfo;
 	string p;
 	if ((hFile = _findfirst(p.assign(path).append("\\*").c_str(), &fileinfo)) != -1)
 	{
 		do
 		{
-			//如果是目录,迭代之
-			//如果不是,加入列表
+
 			if ((fileinfo.attrib & _A_SUBDIR))
 			{
 				if (strcmp(fileinfo.name, ".") != 0 && strcmp(fileinfo.name, "..") != 0)
@@ -204,13 +271,14 @@ void read_abc(string name)
 	
 }
 
-void seq2abc(string inputdir, string ouputfile, float fps)
+void seq2abc(string inputdir, string ouputfile, float fps, std::string NodeName)
 {
 	
 	string suffixStr = "obj";
 	std::vector<vertice> Vertices;
 	std::vector<vertice> Normals;
 	std::vector<uv> Uvs;
+	std::vector<int> FaceUvIndexs;
 	std::vector<int> face;
 	std::vector<string> filenames;
 	std::vector<int> g_counts_array;
@@ -219,12 +287,13 @@ void seq2abc(string inputdir, string ouputfile, float fps)
 	int i = 0;
 	OArchive archive(Alembic::AbcCoreOgawa::WriteArchive(), ouputfile);
 	TimeSamplingPtr ts(new TimeSampling(1.0 / fps, 0.0));
-	OXform xfobj(archive.getTop(), "xf", ts);
-	OPolyMesh meshyObj(xfobj, "mesh", ts);
+	OXform xfobj(archive.getTop(), NodeName, ts);
+	OPolyMesh meshyObj(xfobj, NodeName, ts);
 	//OPolyMesh meshyObj(OObject(archive, kTop), "mesh", ts);
 	OPolyMeshSchema& mesh = meshyObj.getSchema();
-	
-	ReadObj(filenames[0], Vertices, Uvs, Normals, face, g_counts_array);
+	mesh.setUVSourceName("UVMap");
+	ReadObj(filenames[0], Vertices, Uvs, Normals, face, FaceUvIndexs, g_counts_array);
+	//ReadObj(filenames[0], Vertices, Uvs, Normals, face, g_counts_array);
 	std::vector< V3f > verts(Vertices.size());
 	for (size_t i = 0; i < Vertices.size(); ++i)
 	{
@@ -237,37 +306,30 @@ void seq2abc(string inputdir, string ouputfile, float fps)
 	Abc::int32_t* g_counts2 = new Abc::int32_t[g_counts_array.size()];
 	std::copy(g_counts_array.begin(), g_counts_array.end(), g_counts2);
 	int j = 0;
-	Abc::float32_t* g_uvs = new Abc::float32_t[Uvs.size() * 2];
-	for (auto item : Uvs)
-	{
-		g_uvs[2 * j] = (Abc::float32_t)(item.u);
-		g_uvs[2 * j + 1] = (Abc::float32_t)(item.v);
-		j += 1;
-	}
+	
 	OPolyMeshSchema::Sample mesh_samp(
 		V3fArraySample(verts),
 		Int32ArraySample(g_indices2, g_numIndices2),
 		Int32ArraySample(g_counts2, g_counts_array.size()));
-	OV2fGeomParam::Sample uvsamp(V2fArraySample((const V2f*)g_uvs,
-		Uvs.size()), kFacevaryingScope);
-	//std::cout << uvsamp.getVals().size() << std::endl;
-	/*
-	auto tmp = uvsamp.getVals();
-	for (int i=0;i<tmp.size();i++)
-	{
-		std::cout << tmp[i] << std::endl;
-	}
-	*/
-	mesh_samp.setUVs(uvsamp);
-	std::cout << mesh_samp.getUVs().getVals().size() << std::endl;
-	mesh.set(mesh_samp);
-	std::cout << mesh.getNumSamples() << std::endl;
+	std::vector<V2f> FaceUvs(FaceUvIndexs.size());
 
-	//XformSample xf_samp;
-	//XformOp rotOp(kRotateXOperation);
-	//xf_samp.addOp(rotOp, 0.0);
-	//xfobj.getSchema().set(xf_samp);
+	if (FaceUvIndexs.size() > 0)
+	{
+		for (size_t i = 0; i < FaceUvIndexs.size(); ++i) {
+			if (FaceUvIndexs[i] != -1)
+			{
+				FaceUvs[i] = V2f(Uvs[FaceUvIndexs[i]].u, Uvs[FaceUvIndexs[i]].v);
+			}
+			
+		}
+	}
 	
+	V2fArraySample uvSample(FaceUvs);
+	mesh_samp.setUVs(OV2fGeomParam::Sample(uvSample, kFacevaryingScope));
+	
+	
+	mesh.set(mesh_samp);
+
 	for (int i = 1; i < filenames.size(); i++)
 	{
 		Vertices.clear();
@@ -286,18 +348,13 @@ void seq2abc(string inputdir, string ouputfile, float fps)
 		{
 			verts[i] = V3f(Vertices[i].x, Vertices[i].y, Vertices[i].z);
 		}
-
 		std::cout << "verteice size " << Vertices.size() << std::endl;
 		std::cout << "face count " << face.size() << std::endl;
-		std::cout << "uv count " << Uvs.size() << std::endl;
+		std::cout << "uv count " << FaceUvs.size() << std::endl;
 		std::cout << "read name " << filenames[i] << std::endl;
-		
 		mesh.set(mesh_samp);
 
 	}
-	
-	
-	
 	
 	/*
 	ON3fGeomParam::Sample nsamp( N3fArraySample( (const N3f *)g_normals,
@@ -319,13 +376,6 @@ void seq2abc(string inputdir, string ouputfile, float fps)
 										   g_numVerts ) );
 	mesh_samp.setUVs( uvsamp );
 	mesh_samp.setNormals( nsamp );
-	*/
-
-	/*
-	mesh_samp.setUVs( OV2fGeomParam::Sample() );
-	mesh_samp.setNormals( ON3fGeomParam::Sample() );
-	mesh_samp.setVelocities( V3fArraySample() );
-	mesh.set( mesh_samp );
 	*/
 	/*
 	IArchive archive( Alembic::AbcCoreOgawa::ReadArchive(), name );
@@ -351,6 +401,7 @@ void print_usage(const char* name)
 		<< "  -i, --in       obj input dir \n"
 		<< "  -o, --out      output abc name \n"
 		<< "  -f --fps       abc frame rate \n"
+		<< "  -n --name      Node Name \n"
 		<< "\n"
 		<< std::endl;
 }
@@ -366,6 +417,7 @@ int main(int argc, char* argv[])
 	}
 	string inputdir = "E:\\CPP_Project\\Objs2Abc\\x64\\Release\\total";
 	string output = "test.abc";
+	string NodeName = "NodeName";
 	float fps = 24.0;
 	
 	for (int i = 1; i < argc; i++)
@@ -388,16 +440,21 @@ int main(int argc, char* argv[])
 		{
 			fps = std::stof(argv[i + 1]);
 		}
+		else if(t_arg == "-n" || t_arg == "--name")
+	    {
+			NodeName = argv[i + 1];
+		}
 		
 	}
 	
 	std::cout << "input dir: " << inputdir << std::endl;
 	std::cout << "output abc: " << output << std::endl;
 	std::cout << "fps: " << fps << std::endl;
+	std::cout << "NodeName: " << NodeName << std::endl;
 
 	// Mesh out
 	
-	seq2abc(inputdir, output, fps);
+	seq2abc(inputdir, output, fps, NodeName);
 	string name = "output.abc";
 	//read_abc(name);
 

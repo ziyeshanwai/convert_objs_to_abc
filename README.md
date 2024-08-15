@@ -26,7 +26,3 @@ result:
 ![](./imgs/0.gif)
 
 
-### Problems  
-
-* the abc file has no uv normal information!  
-  if you  want to add this information to abc, please change the code and compile
