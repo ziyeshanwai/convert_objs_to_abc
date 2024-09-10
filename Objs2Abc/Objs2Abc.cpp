@@ -199,6 +199,7 @@ void ReadObj(const std::string& path, std::vector<vertice>& OutVertices, std::ve
 				std::string face;
 				std::vector<int> vertexIndices;
 				std::vector<int> uvIndices;
+				std::vector<int> normalIndices;
 
 				while (in >> face) {
 					int vertexIndex, uvIndex, normalIndex;
@@ -206,6 +207,7 @@ void ReadObj(const std::string& path, std::vector<vertice>& OutVertices, std::ve
 					if (sscanf_s(face.c_str(), "%d/%d/%d", &vertexIndex, &uvIndex, &normalIndex) == 3) {
 						vertexIndices.push_back(vertexIndex - 1);
 						uvIndices.push_back(uvIndex - 1);
+						normalIndices.push_back(normalIndex - 1);
 					}
 					
 					else if (sscanf_s(face.c_str(), "%d/%d", &vertexIndex, &uvIndex) == 2) {
@@ -218,11 +220,12 @@ void ReadObj(const std::string& path, std::vector<vertice>& OutVertices, std::ve
 						uvIndices.push_back(-1); 
 					}
 				}
-
+				std::reverse(vertexIndices.begin(), vertexIndices.end());
 				for (size_t i = 0; i < vertexIndices.size(); ++i) {
 					OutFaceVertices.push_back(vertexIndices[i]);
 					OutFaceUvs.push_back(uvIndices.size() > i ? uvIndices[i] : -1); 
 				}
+				
 				Outgcounts.push_back(vertexIndices.size());
 			}
 		}
@@ -327,7 +330,6 @@ void seq2abc(string inputdir, string ouputfile, float fps, std::string NodeName)
 	V2fArraySample uvSample(FaceUvs);
 	mesh_samp.setUVs(OV2fGeomParam::Sample(uvSample, kFacevaryingScope));
 	
-	
 	mesh.set(mesh_samp);
 
 	for (int i = 1; i < filenames.size(); i++)
@@ -355,6 +357,8 @@ void seq2abc(string inputdir, string ouputfile, float fps, std::string NodeName)
 		mesh.set(mesh_samp);
 
 	}
+	delete[] g_indices2;
+	delete[] g_counts2;
 	
 	/*
 	ON3fGeomParam::Sample nsamp( N3fArraySample( (const N3f *)g_normals,
